@@ -1,0 +1,233 @@
+:root {
+  color-scheme: light;
+  --ink: #0e1114;
+  --ash: #f4f1ea;
+  --accent: #ff6f3c;
+  --cool: #2d5b80;
+  --glow: rgba(255, 111, 60, 0.4);
+  --panel: rgba(255, 255, 255, 0.7);
+  --shadow: rgba(14, 17, 20, 0.12);
+  --grid: rgba(14, 17, 20, 0.08);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  background: radial-gradient(circle at top, #fff4e8 0%, #f6efe5 42%, #ece8e0 100%);
+  color: var(--ink);
+}
+
+.app {
+  min-height: 100vh;
+  padding: 36px 40px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+}
+
+.title h1 {
+  font-family: "Fraunces", serif;
+  font-weight: 500;
+  font-size: clamp(2.4rem, 3vw, 3.6rem);
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.75rem;
+  color: var(--cool);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.9rem;
+}
+
+#refreshButton {
+  border: 1px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  padding: 8px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#refreshButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px var(--shadow);
+}
+
+.content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.8fr);
+  gap: 24px;
+  flex: 1;
+}
+
+.stage {
+  position: relative;
+  border-radius: 28px;
+  overflow: hidden;
+  min-height: 520px;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.15));
+  box-shadow: 0 24px 60px var(--shadow);
+}
+
+#glCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.map-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(to right, var(--grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+.map-label {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  font-size: 0.8rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(14, 17, 20, 0.5);
+}
+
+.dot-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.city-dot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 0 0 var(--glow);
+  transform: translate(-50%, -50%);
+  animation: pulse 2.8s ease-in-out infinite;
+}
+
+.city-dot[data-intensity="low"] {
+  background: #ffc857;
+}
+
+.city-dot[data-intensity="mid"] {
+  background: #ff8a5b;
+}
+
+.city-dot[data-intensity="high"] {
+  background: #ff4d4d;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--glow);
+  }
+  70% {
+    box-shadow: 0 0 0 20px rgba(255, 111, 60, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 111, 60, 0);
+  }
+}
+
+.panel {
+  background: var(--panel);
+  backdrop-filter: blur(10px);
+  border-radius: 24px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 18px 48px var(--shadow);
+}
+
+.panel-header h2 {
+  margin: 0;
+  font-family: "Fraunces", serif;
+  font-weight: 500;
+}
+
+.panel-header p {
+  margin: 6px 0 0;
+  color: rgba(14, 17, 20, 0.6);
+  font-size: 0.85rem;
+}
+
+.cards {
+  display: grid;
+  gap: 12px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: grid;
+  gap: 6px;
+  box-shadow: 0 10px 20px var(--shadow);
+}
+
+.card h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.card .meta-line {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: rgba(14, 17, 20, 0.7);
+}
+
+.card .metric {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--cool);
+}
+
+@media (max-width: 1024px) {
+  .content {
+    grid-template-columns: 1fr;
+  }
+  .stage {
+    min-height: 440px;
+  }
+}
+
+@media (max-width: 720px) {
+  .app {
+    padding: 24px;
+  }
+  .top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

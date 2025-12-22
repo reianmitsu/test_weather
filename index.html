@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Weather Flux Japan</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;500&family=Space+Grotesk:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="top">
+        <div class="title">
+          <div class="eyebrow">Realtime Weather Field</div>
+          <h1>Japan Weather Flux</h1>
+        </div>
+        <div class="meta">
+          <div id="updatedAt">--:-- JST</div>
+          <button id="refreshButton" type="button">Refresh</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <section class="stage">
+          <canvas id="glCanvas" aria-hidden="true"></canvas>
+          <div class="map-overlay" id="mapOverlay">
+            <div class="map-label">JP Grid</div>
+            <div class="dot-layer" id="dotLayer"></div>
+          </div>
+        </section>
+        <aside class="panel">
+          <div class="panel-header">
+            <h2>Live Cities</h2>
+            <p>Open-Meteo feed / 10-min interval</p>
+          </div>
+          <div class="cards" id="cityCards"></div>
+        </aside>
+      </main>
+    </div>
+
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+    <script src="data/cities.js"></script>
+    <script src="main.js"></script>
+  </body>
+</html>
