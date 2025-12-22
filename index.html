@@ -30,16 +30,21 @@
           <canvas id="glCanvas" aria-hidden="true"></canvas>
           <div class="map-overlay" id="mapOverlay">
             <div class="map-label">JP Grid</div>
+            <svg class="jp-wireframe" viewBox="0 0 400 700" aria-hidden="true">
+              <path
+                d="M266 24l20 24 36 14-6 20-34 12-16 20 18 24-6 28-36 18-22-8-10-26-22-4-10-22 10-18 20-6 4-24 20-12 4-20zm-66 102l20 10 24 24-6 26-24 14-6 22-30 10-28-10-6-26 18-18 2-24 18-28 18 0zm40 138l30 18 10 28-10 28-24 14-22-10-20-26 6-26 30-26zm-40 120l20 18 0 30-18 24-24 8-22-8-12-22 6-28 24-20 26-2zm-34 104l18 14 4 28-16 26-28 12-26-12-10-24 8-28 24-20 26 4zm-42 104l10 16-4 26-20 18-24 4-22-10-6-24 10-22 24-10 32 2z"
+              />
+            </svg>
             <div class="dot-layer" id="dotLayer"></div>
           </div>
+          <aside class="panel">
+            <div class="panel-header">
+              <h2>Live Cities</h2>
+              <p>Open-Meteo feed / 10-min interval</p>
+            </div>
+            <div class="cards" id="cityCards"></div>
+          </aside>
         </section>
-        <aside class="panel">
-          <div class="panel-header">
-            <h2>Live Cities</h2>
-            <p>Open-Meteo feed / 10-min interval</p>
-          </div>
-          <div class="cards" id="cityCards"></div>
-        </aside>
       </main>
     </div>
 
