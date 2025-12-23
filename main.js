@@ -29,6 +29,9 @@ const state = {
   mapScale: 1,
   drag: { active: false, startX: 0, startY: 0 },
   facts: new Map(),
+  latestWeather: null,
+  densityMask: null,
+  mapPaths: null,
 };
 
 const elements = {
@@ -40,6 +43,7 @@ const elements = {
   mapOverlay: document.getElementById("mapOverlay"),
   updatedAt: document.getElementById("updatedAt"),
   refreshButton: document.getElementById("refreshButton"),
+  densityLayer: document.getElementById("densityLayer"),
   tooltip: null,
 };
 
@@ -374,6 +378,137 @@ function setUpdatedTime() {
   elements.updatedAt.textContent = stamp;
 }
 
+function getDensityMask(width, height) {
+  if (
+    state.densityMask &&
+    state.densityMask.width === width &&
+    state.densityMask.height === height
+  ) {
+    return state.densityMask;
+  }
+
+  if (!state.mapPaths) {
+    const svg = document.querySelector(".jp-wireframe");
+    const paths = svg ? Array.from(svg.querySelectorAll("path")) : [];
+    state.mapPaths = paths.map((path) => new Path2D(path.getAttribute("d")));
+  }
+
+  const maskCanvas = document.createElement("canvas");
+  maskCanvas.width = width;
+  maskCanvas.height = height;
+  const maskCtx = maskCanvas.getContext("2d");
+  if (!maskCtx) return null;
+
+  maskCtx.clearRect(0, 0, width, height);
+  maskCtx.save();
+  maskCtx.scale(width / 400, height / 500);
+  maskCtx.filter = "blur(18px)";
+  maskCtx.fillStyle = "rgba(255, 255, 255, 1)";
+  state.mapPaths.forEach((path) => maskCtx.fill(path));
+  maskCtx.restore();
+  maskCtx.filter = "none";
+
+  const data = maskCtx.getImageData(0, 0, width, height).data;
+  state.densityMask = { width, height, data };
+  return state.densityMask;
+}
+
+function drawDensityLayer(list) {
+  if (!elements.densityLayer) return;
+  const canvas = elements.densityLayer;
+  const width = elements.mapFrame.offsetWidth;
+  const height = elements.mapFrame.offsetHeight;
+  if (!width || !height) return;
+
+  const ratio = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.floor(width * ratio);
+  canvas.height = Math.floor(height * ratio);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0, 0, width, height);
+
+  const square = 2;
+  const gap = 1;
+  const step = square + gap;
+  const color = "rgba(90, 90, 90, 0.6)";
+  const sigma = 40;
+  const sigma2 = sigma * sigma * 2;
+  const mask = getDensityMask(width, height);
+  const maskData = mask ? mask.data : null;
+
+  const points = list.map((item) => {
+    const level = clamp(item.temperature / 30, 0, 1);
+    const { x, y } = projectCoord(item.city.lat, item.city.lon, {
+      width,
+      height,
+    });
+    return { x, y, level, temperature: item.temperature };
+  });
+
+  const cols = Math.ceil((width - square) / step);
+  const rows = Math.ceil((height - square) / step);
+  const edgeFade = 500;
+  const edgeBuffer = 80;
+
+  const noise = (x, y) => {
+    const s = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+    return s - Math.floor(s);
+  };
+
+  for (let row = 0; row < rows; row += 1) {
+    const yPos = row * step;
+    for (let col = 0; col < cols; col += 1) {
+      const xPos = col * step;
+      let influence = 0;
+      let tempWeight = 0;
+      let weightSum = 0;
+      let minDist2 = Infinity;
+      for (let i = 0; i < points.length; i += 1) {
+        const dx = xPos - points[i].x;
+        const dy = yPos - points[i].y;
+        const dist2 = dx * dx + dy * dy;
+        const weight = Math.exp(-dist2 / sigma2);
+        influence += points[i].level * weight;
+        tempWeight += points[i].temperature * weight;
+        weightSum += weight;
+        if (dist2 < minDist2) minDist2 = dist2;
+      }
+      const edgeDist =
+        Math.min(xPos, yPos, width - xPos, height - yPos) + edgeBuffer;
+      const edgeFactor = clamp(edgeDist / edgeFade, 0, 1);
+      const edgeSmooth = edgeFactor * edgeFactor * (3 - 2 * edgeFactor);
+      let maskAlpha = 1;
+      if (maskData) {
+        const mx = Math.max(0, Math.min(width - 1, Math.round(xPos)));
+        const my = Math.max(0, Math.min(height - 1, Math.round(yPos)));
+        maskAlpha = maskData[(my * width + mx) * 4 + 3] / 255;
+        maskAlpha = Math.pow(maskAlpha, 0.6);
+        const cityFade = 200;
+        const cityDist = Math.sqrt(minDist2);
+        const cityFactor = clamp(cityDist / cityFade, 0, 1);
+        const citySmooth = cityFactor * cityFactor * (3 - 2 * cityFactor);
+        maskAlpha = maskAlpha + (1 - maskAlpha) * (1 - citySmooth);
+      }
+      const probability = clamp(
+        (0.03 + influence * 0.6) * edgeSmooth * maskAlpha,
+        0,
+        0.85
+      );
+      if (noise(col, row) < probability) {
+        const avgTemp = tempWeight / Math.max(weightSum, 1e-4);
+        const colorMix = tempToColor(avgTemp);
+        ctx.fillStyle = `rgba(${colorMix.r}, ${colorMix.g}, ${colorMix.b}, 0.55)`;
+        ctx.fillRect(xPos, yPos, square, square);
+      }
+    }
+  }
+}
+
 function summarizeWeather(values) {
   const temps = values.map((v) => v.temperature);
   const rains = values.map((v) => v.precipitation);
@@ -414,12 +549,17 @@ async function fetchWeather() {
     };
   });
 
+  state.latestWeather = list;
+
   list.forEach((item) => {
     const card = state.cards.get(item.city.name);
     if (!card) return;
     card.querySelector(".metric").textContent = `${Math.round(
       item.temperature
     )}°`;
+    const cardTemp = card.querySelector(".metric");
+    const cardColor = tempToColor(item.temperature);
+    cardTemp.style.color = `rgb(${cardColor.r}, ${cardColor.g}, ${cardColor.b})`;
     card.querySelector(".cloud").textContent = `${Math.round(
       item.cloudCover
     )}%`;
@@ -472,6 +612,7 @@ async function fetchWeather() {
       precipitation: item.precipitation,
     }))
   );
+  drawDensityLayer(list);
   setUpdatedTime();
   positionCityElements();
 }
@@ -656,6 +797,9 @@ function updateMapScale() {
   elements.mapFrame.style.height = `${Math.max(height * 3.12, vh * 0.6)}px`;
   elements.mapFrame.style.width = "auto";
   applyMapTransform();
+  if (state.latestWeather) {
+    drawDensityLayer(state.latestWeather);
+  }
 }
 
 async function updateWeather() {
